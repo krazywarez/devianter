@@ -1,3 +1,3 @@
-module github.com/zerolabsco/devianter
+module github.com/krazywarez/devianter
 
 go 1.18
