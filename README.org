@@ -1,0 +1,12 @@
+#+title: devianter
+
+* what
+deviantart guest api library for go.
+
+* endpoints
+avatars, emojis, deviations, comments, search (incl. gallery
+search), users (with gallery).
+
+* fork
+forked from skunky/devianter.
+https://git.macaw.me/skunky/devianter
