@@ -129,41 +129,48 @@ type Post struct {
 func UrlFromMedia(m Media, thumb ...int) (urlParsed, wellFormattedFilename string) {
 	var url strings.Builder
 
-	subtractWidthHeight := func(to int, target ...*int) {
-		for i, l := 0, len(target); i < l; i++ {
-			for x := *target[i]; x > to; x -= to {
-				*target[i] = x
-			}
-		}
-	}
-
 	for _, t := range m.Types {
-		if t.T == "fullview" {
-			url.WriteString(m.BaseUri)
-			if l := len(m.BaseUri); l != 0 && (m.BaseUri[l-3:] != "gif" && t.W*t.H < 33177600) {
-				if len(thumb) != 0 {
-					subtractWidthHeight(thumb[0], &t.W, &t.H)
-				}
-				wellFormattedFilename = m.Name + m.BaseUri[l-4:]
-
-				url.WriteString("/v1/fit/w_")
-				url.WriteString(strconv.Itoa(t.W))
-				url.WriteString(",h_")
-				url.WriteString(strconv.Itoa(t.H))
-				url.WriteString("/")
-				url.WriteString(wellFormattedFilename)
-
-			}
-			if len(m.Token) > 0 {
-				url.WriteString("?token=")
-				url.WriteString(m.Token[0])
-			}
+		if t.T != "fullview" {
+			continue
+		}
+		url.WriteString(m.BaseUri)
+		if path, name, ok := fitPath(m, t.W, t.H, thumb); ok {
+			wellFormattedFilename = name
+			url.WriteString(path)
+		}
+		if len(m.Token) > 0 {
+			url.WriteString("?token=")
+			url.WriteString(m.Token[0])
 		}
 	}
 
 	urlParsed = url.String()
 
 	return
+}
+
+// fitPath returns the resize path for a w by h rendition of m and the filename
+// it is served under. ok is false for GIFs and for images DeviantArt's resizer
+// refuses.
+func fitPath(m Media, w, h int, thumb []int) (path, name string, ok bool) {
+	l := len(m.BaseUri)
+	if l == 0 || m.BaseUri[l-3:] == "gif" || w*h >= 33177600 {
+		return "", "", false
+	}
+	if len(thumb) != 0 {
+		w = shrinkToward(w, thumb[0])
+		h = shrinkToward(h, thumb[0])
+	}
+	name = m.Name + m.BaseUri[l-4:]
+	return "/v1/fit/w_" + strconv.Itoa(w) + ",h_" + strconv.Itoa(h) + "/" + name, name, true
+}
+
+// shrinkToward steps v down by to while it stays above to.
+func shrinkToward(v, to int) int {
+	for x := v; x > to; x -= to {
+		v = x
+	}
+	return v
 }
 
 // GetDeviation retrieves a single deviation by its numeric ID and its author's
